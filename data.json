@@ -1,0 +1,28 @@
+{
+  "categories": [
+    { "id": "cat-1", "name": "Women's Juttis", "description": "Handcrafted traditional juttis for women, adorned with intricate embroidery and mirror work" },
+    { "id": "cat-2", "name": "Men's Kolhapuri", "description": "Authentic leather Kolhapuri sandals for men, built for comfort and timeless style" },
+    { "id": "cat-3", "name": "Kids' Collection", "description": "Adorable traditional footwear for children in all sizes" },
+    { "id": "cat-4", "name": "Wedding Collection", "description": "Exquisite footwear for the most special occasions — weddings and festivals" },
+    { "id": "cat-5", "name": "Accessories", "description": "Handcrafted leather belts, bags, and accessories to complete the look" }
+  ],
+  "items": [
+    { "id": "item-1", "categoryId": "cat-1", "name": "Embroidered Silk Jutti", "description": "Richly embroidered jutti in silk thread with floral motifs and traditional pointed toe design", "price": 1800, "image": "https://placehold.co/300x200/c8860a/ffffff?text=Embroidered+Jutti" },
+    { "id": "item-2", "categoryId": "cat-1", "name": "Mirror Work Jutti", "description": "Stunning jutti with hand-set mirrors and vibrant thread work, Rajasthani style", "price": 2200, "image": "https://placehold.co/300x200/c8860a/ffffff?text=Mirror+Jutti" },
+    { "id": "item-3", "categoryId": "cat-1", "name": "Golden Zari Jutti", "description": "Elegant jutti woven with golden zari thread, perfect for festive occasions", "price": 2800, "image": "https://placehold.co/300x200/c8860a/ffffff?text=Golden+Jutti" },
+    { "id": "item-4", "categoryId": "cat-1", "name": "Floral Patch Jutti", "description": "Lightweight jutti with colorful floral patches and cushioned insole for all-day wear", "price": 1400, "image": "https://placehold.co/300x200/c8860a/ffffff?text=Floral+Jutti" },
+    { "id": "item-5", "categoryId": "cat-1", "name": "Velvet Embossed Jutti", "description": "Luxurious velvet jutti with bead embellishments and easy slip-on design", "price": 1600, "image": "https://placehold.co/300x200/c8860a/ffffff?text=Velvet+Jutti" },
+    { "id": "item-6", "categoryId": "cat-2", "name": "Classic Kolhapuri Sandal", "description": "Traditional hand-stitched leather Kolhapuri sandal, full buffalo leather construction", "price": 2500, "image": "https://placehold.co/300x200/7b3f00/ffffff?text=Classic+Kolhapuri" },
+    { "id": "item-7", "categoryId": "cat-2", "name": "Premium Cut-work Kolhapuri", "description": "Premium vegetable-tanned leather sandal with intricate hand-cut decorative patterns", "price": 3200, "image": "https://placehold.co/300x200/7b3f00/ffffff?text=Premium+Kolhapuri" },
+    { "id": "item-8", "categoryId": "cat-2", "name": "Ankle-strap Kolhapuri", "description": "Modern take on the classic with an adjustable ankle strap for extra support", "price": 2800, "image": "https://placehold.co/300x200/7b3f00/ffffff?text=Strap+Kolhapuri" },
+    { "id": "item-9", "categoryId": "cat-2", "name": "Men's Closed-toe Jutti", "description": "Men's closed-toe jutti with embroidered toe cap, ideal for kurta and traditional attire", "price": 2000, "image": "https://placehold.co/300x200/7b3f00/ffffff?text=Men+Jutti" },
+    { "id": "item-10", "categoryId": "cat-3", "name": "Kids' Embroidered Jutti", "description": "Tiny embroidered juttis for little feet, soft leather sole, sizes US 4–8", "price": 900, "image": "https://placehold.co/300x200/e07b39/ffffff?text=Kids+Jutti" },
+    { "id": "item-11", "categoryId": "cat-3", "name": "Kids' Kolhapuri Sandal", "description": "Miniature Kolhapuri sandal for kids, durable and lightweight, sizes US 4–8", "price": 1100, "image": "https://placehold.co/300x200/e07b39/ffffff?text=Kids+Kolhapuri" },
+    { "id": "item-12", "categoryId": "cat-3", "name": "Sparkle Festival Jutti", "description": "Glittery jutti for special occasions, sequin and bead detailing, sizes US 5–8", "price": 1200, "image": "https://placehold.co/300x200/e07b39/ffffff?text=Sparkle+Jutti" },
+    { "id": "item-13", "categoryId": "cat-4", "name": "Bridal Pearl Jutti", "description": "Luxurious bridal jutti embellished with freshwater pearls and intricate gold zari work", "price": 5500, "image": "https://placehold.co/300x200/d4af37/3d2b00?text=Bridal+Pearl" },
+    { "id": "item-14", "categoryId": "cat-4", "name": "Groom's Royal Kolhapuri", "description": "Handcrafted Kolhapuri for the groom — hand-tooled leather with gold finish accents", "price": 4800, "image": "https://placehold.co/300x200/d4af37/3d2b00?text=Groom+Kolhapuri" },
+    { "id": "item-15", "categoryId": "cat-4", "name": "Marigold Wedding Jutti", "description": "Vibrant jutti with marigold-inspired embroidery, perfect for mehendi and wedding festivities", "price": 3800, "image": "https://placehold.co/300x200/d4af37/3d2b00?text=Marigold+Jutti" },
+    { "id": "item-16", "categoryId": "cat-5", "name": "Braided Leather Belt", "description": "Hand-braided full-grain leather belt with solid brass buckle, all waist sizes", "price": 1200, "image": "https://placehold.co/300x200/5c3317/ffffff?text=Leather+Belt" },
+    { "id": "item-17", "categoryId": "cat-5", "name": "Embroidered Evening Clutch", "description": "Traditional clutch bag with embroidered front panel, brass clasp closure", "price": 1800, "image": "https://placehold.co/300x200/5c3317/ffffff?text=Clutch+Bag" }
+  ]
+}
