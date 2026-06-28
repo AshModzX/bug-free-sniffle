@@ -1,75 +1,92 @@
 # JuttiDot.com — Shop Website
 
-Handcrafted traditional Kolhapuri/Jutti footwear store based in Kathmandu, Nepal.
+Traditional Kolhapuri/Jutti footwear store — Kathmandu, Nepal.
 
-## Quick Start
+## Quick Start (local)
 
 ```bash
 npm install
 npm start
+# → http://localhost:3000
 ```
 
-Then open http://localhost:3000
+Admin login password: `admin123` (change it before going live!)
+
+---
+
+## Deploying to Vercel
+
+This project includes a `vercel.json` — Vercel will detect it automatically.
+
+1. Push this folder to a **GitHub repo**
+2. Go to [vercel.com](https://vercel.com) → **New Project** → import your repo
+3. In **Environment Variables**, add:
+   - `ADMIN_PASSWORD` = `your-secret-password`
+4. Click **Deploy**
+
+> ⚠️ **Vercel limitation:** Vercel is serverless, so file uploads and item edits
+> are held in memory and **reset when the server restarts** (i.e. after each deploy
+> or after ~10 min of inactivity). For permanent storage, use Railway, Render, or
+> Fly.io instead (see below).
+
+---
+
+## Deploying to Railway (recommended — data persists)
+
+1. Push to GitHub
+2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+3. Add env var: `ADMIN_PASSWORD=your-secret-password`
+4. Railway auto-detects Node.js and runs `npm start`
+
+---
+
+## Deploying to Render (free tier available)
+
+1. Push to GitHub
+2. Go to [render.com](https://render.com) → **New Web Service** → connect repo
+3. Build command: `npm install`  
+   Start command: `npm start`
+4. Add env var: `ADMIN_PASSWORD=your-secret-password`
+
+---
 
 ## Environment Variables
 
-Create a `.env` file (or set these in your host's dashboard):
-
 | Variable | Default | Description |
 |---|---|---|
-| `ADMIN_PASSWORD` | `admin123` | Password for the admin panel |
-| `PORT` | `3000` | Port the server listens on |
+| `ADMIN_PASSWORD` | `admin123` | Admin panel password — **change this!** |
+| `PORT` | `3000` | Port (set automatically by most hosts) |
 
-> **Important:** Change `ADMIN_PASSWORD` before going live!
+---
 
 ## Pages
 
 | URL | Description |
 |---|---|
-| `/` | Homepage — hero, categories, featured items |
+| `/` | Homepage |
 | `/products.html` | Filterable product grid |
-| `/about.html` | Store story + Google Map |
+| `/about.html` | Store story + map |
 | `/contact.html` | Contact form |
 | `/admin.html` | Admin panel (password protected) |
 
-## Admin Panel
-
-1. Go to `/admin.html`
-2. Enter your `ADMIN_PASSWORD`
-3. **Change item images** — click "📷 Change Image" next to any item
-4. **Edit** name, price, description inline
-5. **Add / delete** items and categories
-
-## Deploying to Vercel
-
-1. Push this folder to a GitHub repo
-2. Import into Vercel
-3. Set `ADMIN_PASSWORD` in Vercel → Settings → Environment Variables
-4. Deploy — Vercel will run `npm install && npm start` automatically
-
-> Note: `data.json` is written to disk at runtime. On Vercel (serverless), writes won't persist between deploys. For a persistent store, swap `data.json` for a database like Vercel Postgres or MongoDB Atlas.
-
-## Deploying to Railway / Render / Fly.io
-
-These platforms run a persistent Node.js process, so `data.json` writes **will** persist. Just connect your repo and set the `ADMIN_PASSWORD` env var.
+---
 
 ## Folder Structure
 
 ```
 juttidot-shop/
-├── server.js          ← Express server (all API + static serving)
+├── server.js          ← All backend logic (Express + API)
 ├── package.json
+├── vercel.json        ← Vercel deployment config
 ├── data.json          ← Shop data (categories & items)
 ├── .env.example
 └── public/
-    ├── index.html     ← Homepage
-    ├── products.html  ← Shop grid
-    ← about.html      ← About page
-    ├── contact.html   ← Contact form
-    ├── admin.html     ← Admin panel
-    ├── css/
-    │   └── style.css
-    ├── js/
-    │   └── main.js
-    └── uploads/       ← Uploaded images go here
+    ├── index.html
+    ├── products.html
+    ├── about.html
+    ├── contact.html
+    ├── admin.html
+    ├── css/style.css
+    ├── js/main.js
+    └── uploads/       ← Uploaded product images
 ```

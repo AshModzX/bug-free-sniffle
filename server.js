@@ -13,21 +13,42 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const DATA_FILE = path.join(__dirname, 'data.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
+
+// Vercel filesystem is read-only except /tmp — use /tmp for uploads in production
+const IS_VERCEL = process.env.VERCEL === '1';
+const UPLOADS_DIR = IS_VERCEL
+  ? '/tmp/uploads'
+  : path.join(__dirname, 'public', 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
+// On Vercel, keep an in-memory copy so edits survive within a warm lambda,
+// but note that data resets when the lambda goes cold or redeploys.
+let memData = null;
+
 function readData() {
+  if (IS_VERCEL) {
+    if (!memData) {
+      try { memData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
+      catch { memData = { categories: [], items: [] }; }
+    }
+    return memData;
+  }
   try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
   catch { return { categories: [], items: [] }; }
 }
+
 function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  if (IS_VERCEL) {
+    memData = data; // in-memory only on Vercel
+  } else {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  }
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const sessions = new Map(); // token → expiry ms
+const sessions = new Map();
 
 function createToken() {
   const token = crypto.randomBytes(32).toString('hex');
@@ -41,9 +62,8 @@ function validToken(token) {
   return true;
 }
 function requireAuth(req, res, next) {
-  if (!validToken(req.cookies && req.cookies.auth_token)) {
+  if (!validToken(req.cookies && req.cookies.auth_token))
     return res.status(401).json({ error: 'Unauthorized' });
-  }
   next();
 }
 
@@ -63,6 +83,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Serve uploaded images — on Vercel they live in /tmp/uploads
+if (IS_VERCEL) {
+  app.use('/uploads', express.static(UPLOADS_DIR));
+}
+
 app.use(express.static(PUBLIC_DIR));
 
 // ── Auth routes ───────────────────────────────────────────────────────────────
@@ -87,9 +113,7 @@ app.get('/api/auth/check', (req, res) => {
 });
 
 // ── Category routes ───────────────────────────────────────────────────────────
-app.get('/api/categories', (_req, res) => {
-  res.json(readData().categories);
-});
+app.get('/api/categories', (_req, res) => res.json(readData().categories));
 
 app.post('/api/categories', requireAuth, (req, res) => {
   const { name, description } = req.body;
@@ -124,8 +148,7 @@ app.post('/api/items', requireAuth, (req, res) => {
   const data = readData();
   const item = {
     id: 'item-' + crypto.randomUUID().split('-')[0],
-    categoryId,
-    name,
+    categoryId, name,
     description: description || '',
     price: Number(price) || 0,
     image: 'https://placehold.co/300x200/c8860a/ffffff?text=New+Item',
@@ -174,12 +197,12 @@ app.post('/api/contact', (req, res) => {
   res.json({ success: true, message: 'Thank you for reaching out! We will get back to you soon.' });
 });
 
-// ── Catch-all: serve index.html ───────────────────────────────────────────────
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-});
+// ── Catch-all ─────────────────────────────────────────────────────────────────
+app.get('*', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`JuttiDot shop running at http://localhost:${PORT}`);
-});
+// ── Start (local only — Vercel imports this file as a module) ─────────────────
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`JuttiDot shop running at http://localhost:${PORT}`));
+}
+
+module.exports = app;
