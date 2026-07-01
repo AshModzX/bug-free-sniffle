@@ -235,8 +235,8 @@ function renderAdminItems(catId) {
       </div>
       <div class="badge-price">${formatPrice(item.price)}</div>
       <div class="item-actions">
-        <label class="btn-sm btn-image" style="cursor:pointer;">
-          📷 Change Image
+        <label class="btn-sm btn-image" id="lbl-${item.id}" style="cursor:pointer;">
+          <span class="lbl-txt">📷 Change Image</span>
           <input type="file" accept="image/*" style="display:none" onchange="uploadImage('${item.id}', this)" />
         </label>
         <button class="btn-sm btn-edit" onclick="openEdit('${item.id}')">✏️ Edit</button>
@@ -247,27 +247,44 @@ function renderAdminItems(catId) {
 
 async function uploadImage(itemId, input) {
   if (!input.files[0]) return;
-  const label = input.parentElement;
-  label.textContent = 'Uploading...';
+  // Use the <span> only — never touch textContent on the <label> itself
+  // because that would destroy the hidden <input> inside it.
+  const span = document.querySelector(`#lbl-${itemId} .lbl-txt`);
+  const setStatus = (txt) => { if (span) span.textContent = txt; };
+
+  setStatus('⏳ Uploading…');
   const fd = new FormData();
   fd.append('image', input.files[0]);
+
   try {
-    const res = await fetch(`/api/items/${itemId}/image`, { method: 'POST', body: fd });
+    const res = await fetch(`/api/items/${itemId}/image`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+    });
+
     if (res.ok) {
       const { imageUrl } = await res.json();
-      document.getElementById(`thumb-${itemId}`).src = imageUrl + '?t=' + Date.now();
+      // Force-refresh the thumbnail by busting the browser cache
+      const thumb = document.getElementById(`thumb-${itemId}`);
+      if (thumb) thumb.src = imageUrl + '?t=' + Date.now();
+      // Update in-memory list so re-renders keep the new image
       const item = allItems.find(i => i.id === itemId);
       if (item) item.image = imageUrl;
-      label.textContent = '✅ Updated!';
-      setTimeout(() => { label.textContent = '📷 Change Image'; }, 2000);
+      setStatus('✅ Updated!');
+      setTimeout(() => setStatus('📷 Change Image'), 2500);
     } else {
-      label.textContent = '❌ Failed';
-      setTimeout(() => { label.textContent = '📷 Change Image'; }, 2000);
+      const err = await res.json().catch(() => ({}));
+      setStatus('❌ ' + (err.error || 'Failed'));
+      setTimeout(() => setStatus('📷 Change Image'), 3000);
     }
   } catch {
-    label.textContent = '❌ Error';
-    setTimeout(() => { label.textContent = '📷 Change Image'; }, 2000);
+    setStatus('❌ Network error');
+    setTimeout(() => setStatus('📷 Change Image'), 3000);
   }
+
+  // Reset the file input so the same file can be re-selected if needed
+  input.value = '';
 }
 
 function openEdit(itemId) {

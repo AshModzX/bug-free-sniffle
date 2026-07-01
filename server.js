@@ -1,167 +1,138 @@
-'use strict';
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import pinoHttp from "pino-http";
+import pino from "pino";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
 
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-// ── Config ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const DATA_FILE = path.join(__dirname, 'data.json');
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
-// Vercel filesystem is read-only except /tmp — use /tmp for uploads in production
-const IS_VERCEL = process.env.VERCEL === '1';
-const UPLOADS_DIR = IS_VERCEL
-  ? '/tmp/uploads'
-  : path.join(__dirname, 'public', 'uploads');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = path.join(__dirname, "public");
+const DATA_FILE = path.join(__dirname, "data.json");
+const UPLOADS_DIR = path.join(__dirname, "public", "uploads");
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// ── Data helpers ──────────────────────────────────────────────────────────────
-// On Vercel, keep an in-memory copy so edits survive within a warm lambda,
-// but note that data resets when the lambda goes cold or redeploys.
-let memData = null;
+const logger = pino({ level: "info" });
 
-function readData() {
-  if (IS_VERCEL) {
-    if (!memData) {
-      try { memData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
-      catch { memData = { categories: [], items: [] }; }
-    }
-    return memData;
-  }
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
-  catch { return { categories: [], items: [] }; }
-}
-
-function writeData(data) {
-  if (IS_VERCEL) {
-    memData = data; // in-memory only on Vercel
-  } else {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  }
-}
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
-const sessions = new Map();
-
-function createToken() {
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, Date.now() + 8 * 60 * 60 * 1000);
-  return token;
-}
-function validToken(token) {
-  if (!token) return false;
-  const exp = sessions.get(token);
-  if (!exp || Date.now() > exp) { sessions.delete(token); return false; }
-  return true;
-}
-function requireAuth(req, res, next) {
-  if (!validToken(req.cookies && req.cookies.auth_token))
-    return res.status(401).json({ error: 'Unauthorized' });
-  next();
-}
-
-// ── Multer ────────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, crypto.randomUUID() + ext);
+    cb(null, `${crypto.randomUUID()}${ext}`);
   },
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ── Express app ───────────────────────────────────────────────────────────────
+function readData() {
+  try { return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8")); }
+  catch { return { categories: [], items: [] }; }
+}
+function writeData(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+const activeSessions = new Map();
+function createToken() {
+  const token = crypto.randomBytes(32).toString("hex");
+  activeSessions.set(token, Date.now() + 8 * 60 * 60 * 1000);
+  return token;
+}
+function isValidToken(token) {
+  if (!token) return false;
+  const expiry = activeSessions.get(token);
+  if (!expiry || Date.now() > expiry) { activeSessions.delete(token); return false; }
+  return true;
+}
+function requireAuth(req, res, next) {
+  if (!isValidToken(req.cookies?.auth_token)) { res.status(401).json({ error: "Unauthorized" }); return; }
+  next();
+}
+
 const app = express();
+app.use(pinoHttp({ logger }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// Serve uploaded images — on Vercel they live in /tmp/uploads
-if (IS_VERCEL) {
-  app.use('/uploads', express.static(UPLOADS_DIR));
-}
-
 app.use(express.static(PUBLIC_DIR));
 
-// ── Auth routes ───────────────────────────────────────────────────────────────
-app.post('/api/login', (req, res) => {
-  if (req.body.password === ADMIN_PASSWORD) {
+const api = express.Router();
+
+api.post("/login", (req, res) => {
+  const { password } = req.body;
+  if (password === (process.env.ADMIN_PASSWORD ?? "admin123")) {
     const token = createToken();
-    res.cookie('auth_token', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' });
-    return res.json({ success: true });
+    res.cookie("auth_token", token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000, sameSite: "lax" });
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ error: "Invalid password" });
   }
-  res.status(401).json({ error: 'Invalid password' });
 });
 
-app.post('/api/logout', (req, res) => {
-  const token = req.cookies && req.cookies.auth_token;
-  if (token) sessions.delete(token);
-  res.clearCookie('auth_token');
+api.post("/logout", (req, res) => {
+  const token = req.cookies?.auth_token;
+  if (token) activeSessions.delete(token);
+  res.clearCookie("auth_token");
   res.json({ success: true });
 });
 
-app.get('/api/auth/check', (req, res) => {
-  res.json({ authenticated: validToken(req.cookies && req.cookies.auth_token) });
+api.get("/auth/check", (req, res) => {
+  res.json({ authenticated: isValidToken(req.cookies?.auth_token) });
 });
 
-// ── Category routes ───────────────────────────────────────────────────────────
-app.get('/api/categories', (_req, res) => res.json(readData().categories));
+api.get("/categories", (_req, res) => res.json(readData().categories));
 
-app.post('/api/categories', requireAuth, (req, res) => {
+api.post("/categories", requireAuth, (req, res) => {
   const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name required' });
+  if (!name) { res.status(400).json({ error: "Name required" }); return; }
   const data = readData();
-  const category = { id: 'cat-' + crypto.randomUUID().split('-')[0], name, description: description || '' };
+  const category = { id: `cat-${crypto.randomUUID().split("-")[0]}`, name, description: description ?? "" };
   data.categories.push(category);
   writeData(data);
   res.status(201).json(category);
 });
 
-app.delete('/api/categories/:id', requireAuth, (req, res) => {
+api.delete("/categories/:id", requireAuth, (req, res) => {
   const data = readData();
   const idx = data.categories.findIndex(c => c.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  if (idx === -1) { res.status(404).json({ error: "Not found" }); return; }
   data.categories.splice(idx, 1);
   data.items = data.items.filter(i => i.categoryId !== req.params.id);
   writeData(data);
   res.json({ success: true });
 });
 
-// ── Item routes ───────────────────────────────────────────────────────────────
-app.get('/api/items', (req, res) => {
+api.get("/items", (req, res) => {
   const data = readData();
   const cat = req.query.category;
   res.json(cat ? data.items.filter(i => i.categoryId === cat) : data.items);
 });
 
-app.post('/api/items', requireAuth, (req, res) => {
+api.post("/items", requireAuth, (req, res) => {
   const { name, description, price, categoryId } = req.body;
-  if (!name || !categoryId) return res.status(400).json({ error: 'name and categoryId required' });
+  if (!name || !categoryId) { res.status(400).json({ error: "name and categoryId required" }); return; }
   const data = readData();
   const item = {
-    id: 'item-' + crypto.randomUUID().split('-')[0],
+    id: `item-${crypto.randomUUID().split("-")[0]}`,
     categoryId, name,
-    description: description || '',
+    description: description ?? "",
     price: Number(price) || 0,
-    image: 'https://placehold.co/300x200/c8860a/ffffff?text=New+Item',
+    image: "https://placehold.co/300x200/c8860a/ffffff?text=New+Item",
+    images: [],
   };
   data.items.push(item);
   writeData(data);
   res.status(201).json(item);
 });
 
-app.put('/api/items/:id', requireAuth, (req, res) => {
+api.put("/items/:id", requireAuth, (req, res) => {
   const data = readData();
   const item = data.items.find(i => i.id === req.params.id);
-  if (!item) return res.status(404).json({ error: 'Not found' });
+  if (!item) { res.status(404).json({ error: "Not found" }); return; }
   const { name, description, price, categoryId } = req.body;
   if (name !== undefined) item.name = name;
   if (description !== undefined) item.description = description;
@@ -171,38 +142,38 @@ app.put('/api/items/:id', requireAuth, (req, res) => {
   res.json(item);
 });
 
-app.delete('/api/items/:id', requireAuth, (req, res) => {
+api.delete("/items/:id", requireAuth, (req, res) => {
   const data = readData();
   const idx = data.items.findIndex(i => i.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  if (idx === -1) { res.status(404).json({ error: "Not found" }); return; }
   data.items.splice(idx, 1);
   writeData(data);
   res.json({ success: true });
 });
 
-app.post('/api/items/:id/image', requireAuth, upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+api.post("/items/:id/image", requireAuth, upload.single("image"), (req, res) => {
+  if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
   const data = readData();
   const item = data.items.find(i => i.id === req.params.id);
-  if (!item) return res.status(404).json({ error: 'Not found' });
-  item.image = '/uploads/' + req.file.filename;
+  if (!item) { res.status(404).json({ error: "Not found" }); return; }
+  item.image = `/uploads/${req.file.filename}`;
+  if (!item.images) item.images = [];
+  item.images[0] = item.image;
   writeData(data);
   res.json({ imageUrl: item.image });
 });
 
-// ── Contact ───────────────────────────────────────────────────────────────────
-app.post('/api/contact', (req, res) => {
+api.post("/contact", (req, res) => {
   const { name, email, message } = req.body;
-  console.log('[Contact]', { name, email, message });
-  res.json({ success: true, message: 'Thank you for reaching out! We will get back to you soon.' });
+  logger.info({ name, email, message }, "Contact form submission");
+  res.json({ success: true, message: "Thank you! We will get back to you soon." });
 });
 
-// ── Catch-all ─────────────────────────────────────────────────────────────────
-app.get('*', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+app.use("/api", api);
 
-// ── Start (local only — Vercel imports this file as a module) ─────────────────
-if (require.main === module) {
-  app.listen(PORT, () => console.log(`JuttiDot shop running at http://localhost:${PORT}`));
-}
+app.get("/*any", (_req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => logger.info(`JuttiDot server running on http://localhost:${PORT}`));

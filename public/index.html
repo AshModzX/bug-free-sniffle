@@ -12,7 +12,7 @@
   <a href="/" class="nav-logo">Jutti<span style="color:#fff">Dot</span><span style="color:var(--saffron)">.com</span></a>
   <button class="nav-toggle" aria-label="Toggle menu">☰</button>
   <ul class="nav-links">
-    <li><a href="/">Hom</a></li>
+    <li><a href="/">Home</a></li>
     <li><a href="/products.html">Shop</a></li>
     <li><a href="/about.html">About</a></li>
     <li><a href="/contact.html">Contact</a></li>
@@ -20,8 +20,8 @@
   </ul>
 </nav>
 
-<div class="hero">
-  <div class="hero-badge">✦ Handcrafted in India</div>
+<div class="hero" style="background-image: linear-gradient(rgba(60,30,10,0.55), rgba(60,30,10,0.65)), url('/uploads/image/hero.jpg'); background-size: cover; background-position: center;">
+  <div class="hero-badge">✦ Handcrafted in Kathmandu</div>
   <h1>Where Tradition Meets Every Step</h1>
   <p>Authentic Kolhapuri sandals and embroidered Juttis — lovingly crafted by artisans and delivered to your door.</p>
   <a href="/products.html" class="btn btn-primary">Shop Collection</a>
@@ -89,8 +89,15 @@
 
 <!-- Item Modal -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <img id="modal-img" src="" alt="" />
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="slider-wrap">
+      <img id="modal-img" src="" alt="" />
+      <button class="slider-btn slider-prev" id="slide-prev" onclick="changeSlide(-1)">‹</button>
+      <button class="slider-btn slider-next" id="slide-next" onclick="changeSlide(1)">›</button>
+      <div class="slider-dots" id="slide-dots"></div>
+      <span class="slider-count" id="slide-count"></span>
+    </div>
     <div class="modal-body">
       <h2 id="modal-name"></h2>
       <div class="modal-price" id="modal-price"></div>
@@ -137,9 +144,27 @@ async function loadFeatured() {
   } catch { grid.innerHTML = '<p style="color:red">Failed to load items.</p>'; }
 }
 
+let _slides = [], _slideIdx = 0;
+function _setSlide(idx) {
+  _slideIdx = (idx + _slides.length) % _slides.length;
+  const img = document.getElementById('modal-img');
+  img.style.opacity = 0;
+  setTimeout(() => { img.src = _slides[_slideIdx]; img.style.opacity = 1; }, 120);
+  document.getElementById('slide-count').textContent = `${_slideIdx+1} / ${_slides.length}`;
+  document.querySelectorAll('.slider-dot').forEach((d,i) => d.classList.toggle('active', i===_slideIdx));
+  document.getElementById('slide-prev').style.display = _slides.length > 1 ? '' : 'none';
+  document.getElementById('slide-next').style.display = _slides.length > 1 ? '' : 'none';
+}
+function changeSlide(dir) { _setSlide(_slideIdx + dir); }
+function goToSlide(i) { _setSlide(i); }
 function openModal(item) {
-  document.getElementById('modal-img').src = item.image;
+  _slides = (item.images && item.images.length) ? item.images : [item.image];
+  _slideIdx = 0;
   document.getElementById('modal-img').alt = item.name;
+  const dots = document.getElementById('slide-dots');
+  dots.innerHTML = _slides.length > 1 ? _slides.map((_,i) => `<button class="slider-dot${i===0?' active':''}" onclick="goToSlide(${i})"></button>`).join('') : '';
+  document.getElementById('slide-count').style.display = _slides.length > 1 ? '' : 'none';
+  _setSlide(0);
   document.getElementById('modal-name').textContent = item.name;
   document.getElementById('modal-price').textContent = formatPrice(item.price);
   document.getElementById('modal-desc').textContent = item.description;
@@ -148,7 +173,11 @@ function openModal(item) {
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'ArrowRight') changeSlide(1);
+  if (e.key === 'ArrowLeft') changeSlide(-1);
+});
 
 loadCategories();
 loadFeatured();
