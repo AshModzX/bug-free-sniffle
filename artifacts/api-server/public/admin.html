@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — JuttiDot.com</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="background:#f5ede3;">
+
+<nav>
+  <a href="/" class="nav-logo">Jutti<span style="color:#fff">Dot</span><span style="color:var(--saffron)">.com</span></a>
+  <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/products.html">Shop</a></li>
+    <li><a href="/about.html">About</a></li>
+    <li><a href="/contact.html">Contact</a></li>
+    <li><a href="/admin.html" style="color:var(--saffron-light)">Admin</a></li>
+  </ul>
+</nav>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo"><span>Jutti<em>Dot</em>.com</span></div>
+    <h2>Admin Login</h2>
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter admin password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+      <div id="login-error" style="color:#991b1b;font-size:0.9rem;margin-top:0.75rem;text-align:center;"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="dashboard" style="display:none;">
+  <div class="admin-wrapper">
+    <div class="admin-header">
+      <h1>Admin Dashboard</h1>
+      <div style="display:flex;gap:0.75rem;align-items:center;">
+        <a href="/" class="btn" style="background:#fff;color:var(--brown-dark);border:1.5px solid #ddd;padding:0.45rem 1rem;font-size:0.9rem;border-radius:6px;">← View Site</a>
+        <button onclick="doLogout()" class="btn btn-delete btn-sm" style="padding:0.45rem 1rem;font-size:0.9rem;">Logout</button>
+      </div>
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('items')">Items &amp; Images</button>
+      <button class="tab-btn" onclick="switchTab('categories')">Categories</button>
+      <button class="tab-btn" onclick="switchTab('add-item')">+ Add Item</button>
+    </div>
+
+    <!-- ITEMS TAB -->
+    <div id="tab-items">
+      <div class="admin-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+          <h2 style="margin:0;">Browse &amp; Edit Items</h2>
+          <div class="category-list" id="admin-cat-filters"></div>
+        </div>
+        <div id="admin-items-list"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES TAB -->
+    <div id="tab-categories" style="display:none;">
+      <div class="admin-section">
+        <h2>Categories</h2>
+        <div id="cat-list"><div class="loading"><div class="spinner"></div></div></div>
+        <hr style="border:none;border-top:1px solid #f0e6d8;margin:1.5rem 0;">
+        <h2>Add New Category</h2>
+        <form id="add-cat-form" onsubmit="addCategory(event)">
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0;">
+              <input type="text" id="cat-name" placeholder="Category name" required />
+            </div>
+            <div class="form-group" style="flex:2;min-width:200px;margin:0;">
+              <input type="text" id="cat-desc" placeholder="Short description" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add Category</button>
+          </div>
+        </form>
+        <div id="cat-feedback"></div>
+      </div>
+    </div>
+
+    <!-- ADD ITEM TAB -->
+    <div id="tab-add-item" style="display:none;">
+      <div class="admin-section">
+        <h2>Add New Item</h2>
+        <form id="add-item-form" onsubmit="addItem(event)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label>Item Name *</label>
+              <input type="text" id="new-name" required placeholder="e.g. Embroidered Silk Jutti" />
+            </div>
+            <div class="form-group">
+              <label>Category *</label>
+              <select id="new-cat" required><option value="">Select category...</option></select>
+            </div>
+            <div class="form-group">
+              <label>Price (NPR) *</label>
+              <input type="number" id="new-price" required placeholder="1500" min="0" />
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Description</label>
+              <textarea id="new-desc" placeholder="Describe the item..." style="height:80px;"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Item</button>
+        </form>
+        <div id="add-item-feedback"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ITEM MODAL -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeEditModal()">✕</button>
+    <div class="modal-body" style="padding-top:2rem;">
+      <h2 style="margin-bottom:1.25rem;">Edit Item</h2>
+      <input type="hidden" id="edit-id" />
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="edit-name" />
+      </div>
+      <div class="form-group">
+        <label>Price (NPR)</label>
+        <input type="number" id="edit-price" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="edit-desc" style="height:80px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="edit-cat"></select>
+      </div>
+      <button class="btn btn-primary" onclick="saveEdit()" style="width:100%;">Save Changes</button>
+      <div id="edit-feedback"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+let allCats = [];
+let allItems = [];
+let activeAdminCat = '';
+
+async function checkAuth() {
+  const res = await fetch('/api/auth/check');
+  const data = await res.json();
+  if (data.authenticated) showDashboard();
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const pw = document.getElementById('password').value;
+  const err = document.getElementById('login-error');
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  if (res.ok) {
+    showDashboard();
+  } else {
+    err.textContent = 'Incorrect password. Please try again.';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = '';
+}
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = '';
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const [cats, items] = await Promise.all([
+    fetch('/api/categories').then(r => r.json()),
+    fetch('/api/items').then(r => r.json())
+  ]);
+  allCats = cats;
+  allItems = items;
+  renderAdminFilters();
+  renderAdminItems(activeAdminCat);
+  renderCatList();
+  populateCatSelects();
+}
+
+function switchTab(tab) {
+  ['items','categories','add-item'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t === tab ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['items','categories','add-item'][i] === tab);
+  });
+}
+
+function renderAdminFilters() {
+  const bar = document.getElementById('admin-cat-filters');
+  bar.innerHTML = `<button class="cat-chip ${activeAdminCat===''?'active':''}" onclick="filterAdminCat('')">All</button>` +
+    allCats.map(c => `<button class="cat-chip ${activeAdminCat===c.id?'active':''}" onclick="filterAdminCat('${c.id}')">${c.name}</button>`).join('');
+}
+
+function filterAdminCat(id) {
+  activeAdminCat = id;
+  document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.cat-chip').forEach(b => { if (b.textContent === (id ? allCats.find(c=>c.id===id)?.name : 'All')) b.classList.add('active'); });
+  renderAdminItems(id);
+}
+
+function renderAdminItems(catId) {
+  const list = document.getElementById('admin-items-list');
+  const filtered = catId ? allItems.filter(i => i.categoryId === catId) : allItems;
+  if (!filtered.length) { list.innerHTML = '<p style="color:#999;text-align:center;padding:2rem;">No items here yet.</p>'; return; }
+  list.innerHTML = filtered.map(item => `
+    <div class="item-row" id="row-${item.id}">
+      <img class="item-thumb" id="thumb-${item.id}" src="${item.image}" alt="${item.name}" onerror="this.src='https://placehold.co/56x56/c8860a/fff?text=?'" />
+      <div class="item-info">
+        <strong>${item.name}</strong>
+        <span>${allCats.find(c=>c.id===item.categoryId)?.name ?? item.categoryId}</span>
+      </div>
+      <div class="badge-price">${formatPrice(item.price)}</div>
+      <div class="item-actions">
+        <label class="btn-sm btn-image" id="lbl-${item.id}" style="cursor:pointer;">
+          <span class="lbl-txt">📷 Change Image</span>
+          <input type="file" accept="image/*" style="display:none" onchange="uploadImage('${item.id}', this)" />
+        </label>
+        <button class="btn-sm btn-edit" onclick="openEdit('${item.id}')">✏️ Edit</button>
+        <button class="btn-sm btn-delete" onclick="deleteItem('${item.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+async function uploadImage(itemId, input) {
+  if (!input.files[0]) return;
+  // Use the <span> only — never touch textContent on the <label> itself
+  // because that would destroy the hidden <input> inside it.
+  const span = document.querySelector(`#lbl-${itemId} .lbl-txt`);
+  const setStatus = (txt) => { if (span) span.textContent = txt; };
+
+  setStatus('⏳ Uploading…');
+  const fd = new FormData();
+  fd.append('image', input.files[0]);
+
+  try {
+    const res = await fetch(`/api/items/${itemId}/image`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+    });
+
+    if (res.ok) {
+      const { imageUrl } = await res.json();
+      // Force-refresh the thumbnail by busting the browser cache
+      const thumb = document.getElementById(`thumb-${itemId}`);
+      if (thumb) thumb.src = imageUrl + '?t=' + Date.now();
+      // Update in-memory list so re-renders keep the new image
+      const item = allItems.find(i => i.id === itemId);
+      if (item) item.image = imageUrl;
+      setStatus('✅ Updated!');
+      setTimeout(() => setStatus('📷 Change Image'), 2500);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setStatus('❌ ' + (err.error || 'Failed'));
+      setTimeout(() => setStatus('📷 Change Image'), 3000);
+    }
+  } catch {
+    setStatus('❌ Network error');
+    setTimeout(() => setStatus('📷 Change Image'), 3000);
+  }
+
+  // Reset the file input so the same file can be re-selected if needed
+  input.value = '';
+}
+
+function openEdit(itemId) {
+  const item = allItems.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById('edit-id').value = item.id;
+  document.getElementById('edit-name').value = item.name;
+  document.getElementById('edit-price').value = item.price;
+  document.getElementById('edit-desc').value = item.description;
+  document.getElementById('edit-cat').value = item.categoryId;
+  document.getElementById('edit-feedback').innerHTML = '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const feedback = document.getElementById('edit-feedback');
+  const body = {
+    name: document.getElementById('edit-name').value,
+    price: document.getElementById('edit-price').value,
+    description: document.getElementById('edit-desc').value,
+    categoryId: document.getElementById('edit-cat').value,
+  };
+  const res = await fetch(`/api/items/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (res.ok) {
+    const updated = await res.json();
+    const idx = allItems.findIndex(i => i.id === id);
+    if (idx !== -1) allItems[idx] = updated;
+    renderAdminItems(activeAdminCat);
+    feedback.innerHTML = '<div class="alert alert-success">Saved!</div>';
+    setTimeout(closeEditModal, 800);
+  } else {
+    feedback.innerHTML = '<div class="alert alert-error">Failed to save.</div>';
+  }
+}
+
+async function deleteItem(id) {
+  if (!confirm('Delete this item? This cannot be undone.')) return;
+  const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    allItems = allItems.filter(i => i.id !== id);
+    renderAdminItems(activeAdminCat);
+  } else {
+    alert('Failed to delete item.');
+  }
+}
+
+function renderCatList() {
+  const list = document.getElementById('cat-list');
+  if (!allCats.length) { list.innerHTML = '<p style="color:#999">No categories yet.</p>'; return; }
+  list.innerHTML = allCats.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0e6d8;">
+      <div>
+        <strong style="color:var(--brown-dark)">${c.name}</strong>
+        <span style="font-size:0.85rem;color:#888;display:block;">${c.description}</span>
+      </div>
+      <button class="btn-sm btn-delete" onclick="deleteCat('${c.id}')">Delete</button>
+    </div>`).join('');
+}
+
+async function addCategory(e) {
+  e.preventDefault();
+  const name = document.getElementById('cat-name').value.trim();
+  const description = document.getElementById('cat-desc').value.trim();
+  const feedback = document.getElementById('cat-feedback');
+  const res = await fetch('/api/categories', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, description })
+  });
+  if (res.ok) {
+    const cat = await res.json();
+    allCats.push(cat);
+    renderCatList();
+    renderAdminFilters();
+    populateCatSelects();
+    e.target.reset();
+    feedback.innerHTML = '<div class="alert alert-success">Category added!</div>';
+    setTimeout(() => feedback.innerHTML = '', 3000);
+  } else {
+    feedback.innerHTML = '<div class="alert alert-error">Failed to add category.</div>';
+  }
+}
+
+async function deleteCat(id) {
+  if (!confirm('Delete this category and ALL its items?')) return;
+  const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    allCats = allCats.filter(c => c.id !== id);
+    allItems = allItems.filter(i => i.categoryId !== id);
+    renderCatList();
+    renderAdminFilters();
+    renderAdminItems(activeAdminCat);
+    populateCatSelects();
+  } else {
+    alert('Failed to delete category.');
+  }
+}
+
+async function addItem(e) {
+  e.preventDefault();
+  const feedback = document.getElementById('add-item-feedback');
+  const body = {
+    name: document.getElementById('new-name').value,
+    categoryId: document.getElementById('new-cat').value,
+    price: document.getElementById('new-price').value,
+    description: document.getElementById('new-desc').value,
+  };
+  const res = await fetch('/api/items', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    const item = await res.json();
+    allItems.push(item);
+    renderAdminItems(activeAdminCat);
+    e.target.reset();
+    feedback.innerHTML = '<div class="alert alert-success">Item added! Go to "Items & Images" to upload a photo.</div>';
+    setTimeout(() => feedback.innerHTML = '', 4000);
+  } else {
+    feedback.innerHTML = '<div class="alert alert-error">Failed to add item.</div>';
+  }
+}
+
+function populateCatSelects() {
+  const opts = allCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('new-cat').innerHTML = '<option value="">Select category...</option>' + opts;
+  document.getElementById('edit-cat').innerHTML = opts;
+}
+
+checkAuth();
+</script>
+</body>
+</html>

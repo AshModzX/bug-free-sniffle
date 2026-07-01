@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop — JuttiDot.com</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Jutti<span style="color:#fff">Dot</span><span style="color:var(--saffron)">.com</span></a>
+  <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/products.html">Shop</a></li>
+    <li><a href="/about.html">About</a></li>
+    <li><a href="/contact.html">Contact</a></li>
+    <li><a href="/admin.html" style="color:var(--saffron-light)">Admin</a></li>
+  </ul>
+</nav>
+
+<div style="background:var(--brown-dark);padding:2.5rem 1.5rem;text-align:center;color:#fff;">
+  <h1 style="margin:0 0 0.3rem;font-size:2rem;" id="page-title">Our Collection</h1>
+  <p style="opacity:0.7;margin:0;" id="page-subtitle">Handcrafted footwear for every occasion</p>
+</div>
+
+<section>
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-btn active" data-cat="">All Items</button>
+  </div>
+  <div id="results-count" style="text-align:center;color:#888;font-size:0.9rem;margin-bottom:1.5rem;"></div>
+  <div class="grid-3" id="items-grid">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo-text">JuttiDot.com</div>
+      <p>Handcrafted traditional Kolhapuri sandals and Juttis from the heart of Kathmandu.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products.html">Shop All</a></li>
+        <li><a href="/about.html">About Us</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-contact">
+      <h4>Contact</h4>
+      <p>Bhurungkhel Marg<br>Kathmandu 44600, Nepal<br>+977 971-3138243</p>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2025 JuttiDot.com · All rights reserved</div>
+</footer>
+
+<!-- Item Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="slider-wrap">
+      <img id="modal-img" src="" alt="" />
+      <button class="slider-btn slider-prev" id="slide-prev" onclick="changeSlide(-1)">‹</button>
+      <button class="slider-btn slider-next" id="slide-next" onclick="changeSlide(1)">›</button>
+      <div class="slider-dots" id="slide-dots"></div>
+      <span class="slider-count" id="slide-count"></span>
+    </div>
+    <div class="modal-body">
+      <h2 id="modal-name"></h2>
+      <div class="modal-price" id="modal-price"></div>
+      <p id="modal-desc"></p>
+      <a href="/contact.html" class="btn btn-primary" style="margin-top:0.5rem;display:inline-block">Inquire to Order</a>
+      <a id="modal-wa" href="#" target="_blank" rel="noopener" class="btn" style="margin-top:0.5rem;margin-left:0.5rem;display:inline-block;background:#25D366;color:#fff;">💬 Order on WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+const WA_NUMBER = '9779713138243';
+let allItems = [];
+let allCategories = [];
+let activeCat = new URLSearchParams(location.search).get('category') || '';
+
+async function init() {
+  const [cats, items] = await Promise.all([
+    fetch('/api/categories').then(r => r.json()),
+    fetch('/api/items').then(r => r.json())
+  ]);
+  allCategories = cats;
+  allItems = items;
+  buildFilters(cats);
+  renderItems(activeCat);
+
+  if (activeCat) {
+    const cat = cats.find(c => c.id === activeCat);
+    if (cat) {
+      document.getElementById('page-title').textContent = cat.name;
+      document.getElementById('page-subtitle').textContent = cat.description;
+    }
+  }
+}
+
+function buildFilters(cats) {
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = `<button class="filter-btn ${activeCat===''?'active':''}" data-cat="">All Items</button>` +
+    cats.map(c => `<button class="filter-btn ${activeCat===c.id?'active':''}" data-cat="${c.id}">${c.name}</button>`).join('');
+  bar.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeCat = btn.dataset.cat;
+      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderItems(activeCat);
+    });
+  });
+}
+
+function renderItems(catId) {
+  const grid = document.getElementById('items-grid');
+  const filtered = catId ? allItems.filter(i => i.categoryId === catId) : allItems;
+  document.getElementById('results-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''} found`;
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#999">No items in this category yet.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(item => `
+    <div class="card" onclick='openModal(${JSON.stringify(item)})'>
+      <img src="${item.image}" alt="${item.name}" onerror="this.src='https://placehold.co/300x200/c8860a/fff?text=No+Image'" />
+      <div class="card-body">
+        <h3>${item.name}</h3>
+        <p>${item.description}</p>
+        <div class="card-price">${formatPrice(item.price)}</div>
+      </div>
+    </div>`).join('');
+}
+
+let _slides = [], _slideIdx = 0;
+function _setSlide(idx) {
+  _slideIdx = (idx + _slides.length) % _slides.length;
+  const img = document.getElementById('modal-img');
+  img.style.opacity = 0;
+  setTimeout(() => { img.src = _slides[_slideIdx]; img.style.opacity = 1; }, 120);
+  document.getElementById('slide-count').textContent = `${_slideIdx+1} / ${_slides.length}`;
+  document.querySelectorAll('.slider-dot').forEach((d,i) => d.classList.toggle('active', i===_slideIdx));
+  document.getElementById('slide-prev').style.display = _slides.length > 1 ? '' : 'none';
+  document.getElementById('slide-next').style.display = _slides.length > 1 ? '' : 'none';
+}
+function changeSlide(dir) { _setSlide(_slideIdx + dir); }
+function goToSlide(i) { _setSlide(i); }
+function openModal(item) {
+  _slides = (item.images && item.images.length) ? item.images : [item.image];
+  _slideIdx = 0;
+  document.getElementById('modal-img').alt = item.name;
+  const dots = document.getElementById('slide-dots');
+  dots.innerHTML = _slides.length > 1 ? _slides.map((_,i) => `<button class="slider-dot${i===0?' active':''}" onclick="goToSlide(${i})"></button>`).join('') : '';
+  document.getElementById('slide-count').style.display = _slides.length > 1 ? '' : 'none';
+  _setSlide(0);
+  document.getElementById('modal-name').textContent = item.name;
+  document.getElementById('modal-price').textContent = formatPrice(item.price);
+  document.getElementById('modal-desc').textContent = item.description;
+  const msg = encodeURIComponent(`Hi JuttiDot! I'd like to order:\n*${item.name}* — ${formatPrice(item.price)}\nPlease let me know availability.`);
+  document.getElementById('modal-wa').href = `https://wa.me/${WA_NUMBER}?text=${msg}`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'ArrowRight') changeSlide(1);
+  if (e.key === 'ArrowLeft') changeSlide(-1);
+});
+
+init();
+</script>
+</body>
+</html>

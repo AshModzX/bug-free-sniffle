@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — JuttiDot.com</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Jutti<span style="color:#fff">Dot</span><span style="color:var(--saffron)">.com</span></a>
+  <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/products.html">Shop</a></li>
+    <li><a href="/about.html">About</a></li>
+    <li><a href="/contact.html">Contact</a></li>
+    <li><a href="/admin.html" style="color:var(--saffron-light)">Admin</a></li>
+  </ul>
+</nav>
+
+<div style="background:var(--brown-dark);padding:2.5rem 1.5rem;text-align:center;color:#fff;">
+  <h1 style="margin:0 0 0.3rem;font-size:2rem;">Get in Touch</h1>
+  <p style="opacity:0.7;margin:0;">We'd love to hear from you</p>
+</div>
+
+<section>
+  <div class="contact-grid">
+    <div class="contact-form">
+      <h2>Send Us a Message</h2>
+      <form id="contact-form" onsubmit="submitContact(event)">
+        <div class="form-group">
+          <label for="name">Your Name *</label>
+          <input type="text" id="name" name="name" required placeholder="Ram Bahadur Thapa" />
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" required placeholder="ram@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="message">Message *</label>
+          <textarea id="message" name="message" required placeholder="Tell us what you're looking for, ask about sizing, inquire about custom orders..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Send Message</button>
+        <div id="form-feedback"></div>
+      </form>
+    </div>
+    <div>
+      <div class="info-box">
+        <h3>📍 Our Store</h3>
+        <div class="info-row">🏠 <span>Bhurungkhel Marg<br>Kathmandu 44600, Nepal</span></div>
+      </div>
+      <div class="info-box">
+        <h3>📞 Phone &amp; Web</h3>
+        <div class="info-row">📱 <span><a href="tel:+9779713138243" style="color:var(--saffron)">+977 971-3138243</a></span></div>
+        <div class="info-row">🌐 <span><a href="http://kolhapuricollection.com" style="color:var(--saffron)">kolhapuricollection.com</a></span></div>
+      </div>
+      <div class="info-box">
+        <h3>🕐 Opening Hours</h3>
+        <div class="info-row">📅 <span><strong>Monday – Saturday</strong></span></div>
+        <div class="info-row">🕤 <span>9:30 AM – 7:00 PM NPT</span></div>
+        <div class="info-row">❌ <span>Closed Sundays &amp; Public Holidays</span></div>
+      </div>
+      <div style="background:linear-gradient(135deg,var(--brown-dark),#6b2800);border-radius:12px;padding:1.5rem;color:#fff;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🛍️</div>
+        <h3 style="margin:0 0 0.5rem;color:var(--saffron-light)">Custom Orders Welcome</h3>
+        <p style="opacity:0.8;font-size:0.9rem;line-height:1.5;margin:0">Need a specific size, colour, or design? We accept custom orders — reach out and let's create something special together.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo-text">JuttiDot.com</div>
+      <p>Handcrafted traditional Kolhapuri sandals and Juttis from the heart of Kathmandu.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products.html">Shop All</a></li>
+        <li><a href="/about.html">About Us</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-contact">
+      <h4>Contact</h4>
+      <p>Bhurungkhel Marg<br>Kathmandu 44600, Nepal<br>+977 971-3138243</p>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2025 JuttiDot.com · All rights reserved</div>
+</footer>
+
+<script src="/js/main.js"></script>
+<script>
+async function submitContact(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  const feedback = document.getElementById('form-feedback');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        message: document.getElementById('message').value,
+      })
+    });
+    const data = await res.json();
+    feedback.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+    e.target.reset();
+  } catch {
+    feedback.innerHTML = '<div class="alert alert-error">Failed to send. Please try calling us directly.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+}
+</script>
+</body>
+</html>
